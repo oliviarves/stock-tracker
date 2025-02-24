@@ -40,7 +40,7 @@ class StockEvaluation(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('stock', 'user', 'evaluation_type')
+        unique_together = ('stock', 'user')
 
     def __str__(self):
         return f"{self.stock.symbol} - ({self.rating})"
@@ -80,6 +80,9 @@ class SectorEvaluation(models.Model):
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('sector', 'user')
 
 
     def __str__(self):
