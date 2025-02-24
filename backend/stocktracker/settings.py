@@ -140,9 +140,14 @@ GRAPHENE = {
     'SCHEMA': 'stocktracker.schema.schema',
     'MIDDLEWARE': [
         'graphene_django.debug.DjangoDebugMiddleware',
+        "graphql_jwt.middleware.JSONWebTokenMiddleware"
     ]
 }
 
-
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+AUTHENTICATION_BACKENDS = [
+    "graphql_jwt.backends.JSONWebTokenBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
