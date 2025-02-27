@@ -23,10 +23,28 @@ class StockFilter(django_filters.FilterSet):
         to_field_name='name',
         queryset=Tag.objects.all()
     )
+    sma_50_above = django_filters.NumberFilter(field_name="SMA_50", lookup_expr="gt")
+    sma_50_below = django_filters.NumberFilter(field_name="SMA_50", lookup_expr="lt")
+    sma_200_above = django_filters.NumberFilter(field_name="SMA_200", lookup_expr="gt")
+    sma_200_below = django_filters.NumberFilter(field_name="SMA_200", lookup_expr="lt")
+
+    sma_50_week_above = django_filters.NumberFilter(field_name="SMA_50_week", lookup_expr="gt")
+    sma_200_week_above = django_filters.NumberFilter(field_name="SMA_200_week", lookup_expr="gt")
+    wma_30_week_above = django_filters.NumberFilter(field_name="WMA_30_week", lookup_expr="gt")
+
+    rsi_above = django_filters.NumberFilter(field_name="RSI_14", lookup_expr="gt")
+    rsi_below = django_filters.NumberFilter(field_name="RSI_14", lookup_expr="lt")
+
+    rs_sp500_above = django_filters.NumberFilter(field_name="RS_SP500", lookup_expr="gt")
+    rs_sp500_below = django_filters.NumberFilter(field_name="RS_SP500", lookup_expr="lt")
+
+    new_high = django_filters.BooleanFilter(field_name="new_high")
+    new_low = django_filters.BooleanFilter(field_name="new_low")
+    volume_spike = django_filters.BooleanFilter(field_name="volume_spike")
 
     class Meta:
         model = Stock
-        fields = ['symbol', 'name', 'sector']
+        fields = []
 
 class StockNode(DjangoObjectType):
     class Meta:
@@ -359,7 +377,7 @@ class DeleteStockListMutation(graphene.Mutation):
 
 
 class Query(graphene.ObjectType):
-    all_stocks = graphene.List(StockNode)
+    all_stocks =  DjangoFilterConnectionField(StockNode, filterset_class=StockFilter)
     trending_stocks = graphene.List(StockNode)
     stock = graphene.Field(StockNode, id=graphene.ID(), symbol=graphene.String())
 
