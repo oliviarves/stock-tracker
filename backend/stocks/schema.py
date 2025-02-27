@@ -1,7 +1,11 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
+
+import django_filters
+from graphene_django.filter import DjangoFilterConnectionField
 from .models import Stock, Sector, Tag, StockList
+from .utils.data_fetcher import fetch_stock_data
 
 
 # Types
@@ -10,9 +14,25 @@ class SectorType(DjangoObjectType):
         model = Sector
 
 
-class StockType(DjangoObjectType):
+class StockFilter(django_filters.FilterSet):
+    symbol_contains = django_filters.CharFilter(field_name='symbol', lookup_expr='icontains')
+    name_contains = django_filters.CharFilter(field_name='name', lookup_expr='icontains')
+    sector = django_filters.ModelChoiceFilter(queryset=Sector.objects.all())
+    tag = django_filters.ModelMultipleChoiceFilter(
+        field_name='tags__name',
+        to_field_name='name',
+        queryset=Tag.objects.all()
+    )
+
     class Meta:
         model = Stock
+        fields = ['symbol', 'name', 'sector']
+
+class StockNode(DjangoObjectType):
+    class Meta:
+        model = Stock
+        filterset_class  = StockFilter
+        interfaces = (graphene.relay.Node,)
 
 
 class TagType(DjangoObjectType):
@@ -32,7 +52,7 @@ class CreateStockMutation(graphene.Mutation):
         name = graphene.String(required=True)
         sector_id = graphene.ID()
 
-    stock = graphene.Field(StockType)
+    stock = graphene.Field(StockNode)
 
     @classmethod
     def mutate(cls, root, info, symbol, name, sector_id=None):
@@ -59,7 +79,7 @@ class UpdateStockMutation(graphene.Mutation):
         name = graphene.String()
         sector_id = graphene.ID()
 
-    stock = graphene.Field(StockType)
+    stock = graphene.Field(StockNode)
 
     @classmethod
     def mutate(cls, root, info, id, symbol=None, name=None, sector_id=None):
@@ -339,8 +359,9 @@ class DeleteStockListMutation(graphene.Mutation):
 
 
 class Query(graphene.ObjectType):
-    all_stocks = graphene.List(StockType)
-    stock = graphene.Field(StockType, id=graphene.ID(), symbol=graphene.String())
+    all_stocks = graphene.List(StockNode)
+    trending_stocks = graphene.List(StockNode)
+    stock = graphene.Field(StockNode, id=graphene.ID(), symbol=graphene.String())
 
     all_sectors = graphene.List(SectorType)
     sector = graphene.Field(SectorType, id=graphene.ID())
@@ -350,6 +371,29 @@ class Query(graphene.ObjectType):
 
     my_stock_lists = graphene.List(StockListType)
     stock_list = graphene.Field(StockListType, id=graphene.ID())
+
+    stocks_filtered = DjangoFilterConnectionField(StockNode)
+    stocks_by_sector = graphene.List(
+        StockNode,
+        sector_id=graphene.ID(required=True)
+    )
+    stocks_by_tags = graphene.List(
+        StockNode,
+        tag_names=graphene.List(graphene.String, required=True)
+    )
+
+    def resolve_trending_stocks(self, info):
+        """Fetch stocks with strong trends (e.g., volume spikes or RSI over 60)."""
+        return Stock.objects.filter(volume_spike=True) | Stock.objects.filter(RSI_14__gt=60)
+
+    def resolve_stocks_by_sector(self, info, sector_id):
+        try:
+            return Stock.objects.filter(sector_id=sector_id)
+        except:
+            return []
+
+    def resolve_stocks_by_tags(self, info, tag_names):
+        return Stock.objects.filter(tags__name__in=tag_names).distinct()
 
     def resolve_all_stocks(self, info):
         return Stock.objects.all()
@@ -384,6 +428,16 @@ class Query(graphene.ObjectType):
         return StockList.objects.get(pk=id, user=info.context.user)
 
 
+class FetchStockMutation(graphene.Mutation):
+    class Arguments:
+        symbol = graphene.String(required=True)
+
+    stock = graphene.Field(StockNode)
+
+    def mutate(self, info, symbol):
+        stock = fetch_stock_data(symbol)
+        return FetchStockMutation(stock=stock)
+
 class Mutation(graphene.ObjectType):
     create_stock = CreateStockMutation.Field()
     update_stock = UpdateStockMutation.Field()
@@ -400,3 +454,5 @@ class Mutation(graphene.ObjectType):
     create_stock_list = CreateStockListMutation.Field()
     update_stock_list = UpdateStockListMutation.Field()
     delete_stock_list = DeleteStockListMutation.Field()
+
+    fetch_stock = FetchStockMutation.Field()

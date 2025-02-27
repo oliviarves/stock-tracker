@@ -1,4 +1,5 @@
 import graphene
+from django.db import models
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
 from .models import (
@@ -7,22 +8,48 @@ from .models import (
 )
 from stocks.models import Stock, Sector
 from graphene_file_upload.scalars import Upload
+import django_filters
+from graphene_django.filter import DjangoFilterConnectionField
 
+
+class StockNoteFilter(django_filters.FilterSet):
+    title_contains = django_filters.CharFilter(field_name='title', lookup_expr='icontains')
+    content_contains = django_filters.CharFilter(field_name='content', lookup_expr='icontains')
+    stock_symbol = django_filters.CharFilter(field_name='stock__symbol')
+    created_after = django_filters.DateFilter(field_name='created_at', lookup_expr='gte')
+    created_before = django_filters.DateFilter(field_name='created_at', lookup_expr='lte')
+
+    class Meta:
+        model = StockNote
+        fields = ['stock', 'user']
+
+
+class StockEvaluationFilter(django_filters.FilterSet):
+    min_rating = django_filters.NumberFilter(field_name='rating', lookup_expr='gte')
+    max_rating = django_filters.NumberFilter(field_name='rating', lookup_expr='lte')
+    stock_symbol = django_filters.CharFilter(field_name='stock__symbol')
+
+    class Meta:
+        model = StockEvaluation
+        fields = ['stock', 'user', 'rating']
+
+
+class StockNoteNode(DjangoObjectType):
+    class Meta:
+        model = StockNote
+        filterset_class = StockNoteFilter
+        interfaces = (graphene.relay.Node,)
+
+
+class StockEvaluationNode(DjangoObjectType):
+    class Meta:
+        model = StockEvaluation
+        filterset_class = StockEvaluationFilter
+        interfaces = (graphene.relay.Node,)
 
 class StockImageType(DjangoObjectType):
     class Meta:
         model = StockImage
-
-
-class StockNoteType(DjangoObjectType):
-    class Meta:
-        model = StockNote
-
-
-class StockEvaluationType(DjangoObjectType):
-    class Meta:
-        model = StockEvaluation
-
 
 class SectorImageType(DjangoObjectType):
     class Meta:
@@ -46,7 +73,7 @@ class CreateStockNoteMutation(graphene.Mutation):
         title = graphene.String()
         content = graphene.String(required=True)
 
-    note = graphene.Field(StockNoteType)
+    note = graphene.Field(StockNoteNode)
 
     @classmethod
     def mutate(cls, root, info, stock_id, content, title=None):
@@ -75,7 +102,7 @@ class UpdateStockNoteMutation(graphene.Mutation):
         title = graphene.String()
         content = graphene.String()
 
-    note = graphene.Field(StockNoteType)
+    note = graphene.Field(StockNoteNode)
 
     @classmethod
     def mutate(cls, root, info, id, title=None, content=None):
@@ -131,7 +158,7 @@ class CreateStockEvaluationMutation(graphene.Mutation):
         rating = graphene.Int(required=True)
         notes = graphene.String()
 
-    evaluation = graphene.Field(StockEvaluationType)
+    evaluation = graphene.Field(StockEvaluationNode)
 
     @classmethod
     def mutate(cls, root, info, stock_id, rating, notes=None):
@@ -177,7 +204,7 @@ class UpdateStockEvaluationMutation(graphene.Mutation):
         rating = graphene.Int()
         notes = graphene.String()
 
-    evaluation = graphene.Field(StockEvaluationType)
+    evaluation = graphene.Field(StockEvaluationNode)
 
     @classmethod
     def mutate(cls, root, info, id, rating=None, notes=None):
@@ -318,7 +345,6 @@ class CreateSectorEvaluationMutation(graphene.Mutation):
     class Arguments:
         sector_id = graphene.ID(required=True)
         rating = graphene.Int(required=True)
-        evaluation_type = graphene.String(required=True)
         notes = graphene.String()
 
     evaluation = graphene.Field(SectorEvaluationType)
@@ -430,6 +456,9 @@ class UploadSectorImageMutation(graphene.Mutation):
         return UploadSectorImageMutation(success=True, sector_image=sector_image)
 
 
+
+
+
 class Query(graphene.ObjectType):
     # Stock images with filtering
     stock_images = graphene.List(
@@ -440,14 +469,14 @@ class Query(graphene.ObjectType):
 
     # Stock notes with filtering
     stock_notes = graphene.List(
-        StockNoteType,
+        StockNoteNode,
         stock_id=graphene.ID(),
         user_id=graphene.ID()
     )
 
     # Stock evaluations with filtering
     stock_evaluations = graphene.List(
-        StockEvaluationType,
+        StockEvaluationNode,
         stock_id=graphene.ID(),
         user_id=graphene.ID()
     )
@@ -472,6 +501,26 @@ class Query(graphene.ObjectType):
         sector_id=graphene.ID(),
         user_id=graphene.ID()
     )
+
+    stock_notes_filtered = DjangoFilterConnectionField(StockNoteNode)
+    stock_evaluations_filtered = DjangoFilterConnectionField(StockEvaluationNode)
+
+    # Add field for average rating
+    stock_average_rating = graphene.Float(
+        stock_id=graphene.ID(required=True),
+    )
+
+    def resolve_stock_average_rating(self, info, stock_id):
+        try:
+            evaluations = StockEvaluation.objects.filter(
+                stock_id=stock_id
+            )
+            if not evaluations.exists():
+                return None
+
+            return evaluations.aggregate(avg_rating=models.Avg('rating'))['avg_rating']
+        except:
+            return None
 
     # Resolver methods
     def resolve_stock_images(self, info, stock_id=None, user_id=None):

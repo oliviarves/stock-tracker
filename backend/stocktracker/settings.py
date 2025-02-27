@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     # Third-party apps
     'corsheaders',
     'graphene_django',
+    'django_filters',
 
     # Our apps
     'stocks',

@@ -19,6 +19,21 @@ class Stock(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     exposed_to_sectors = models.ManyToManyField(Sector, related_name='exposed_to_sectors')
 
+    current_price = models.FloatField(null=True, blank=True)
+    SMA_50 = models.FloatField(null=True, blank=True)
+    SMA_200 = models.FloatField(null=True, blank=True)
+    RSI_14 = models.FloatField(null=True, blank=True)
+
+    WMA_30_week = models.FloatField(null=True, blank=True)
+    SMA_50_week = models.FloatField(null=True, blank=True)
+    SMA_200_week = models.FloatField(null=True, blank=True)
+
+    RS_SP500 = models.FloatField(null=True, blank=True)
+
+    new_high = models.BooleanField(default=False)
+    new_low = models.BooleanField(default=False)
+    volume_spike = models.BooleanField(default=False)
+
     def __str__(self):
         return f"{self.symbol} - {self.name}"
 
