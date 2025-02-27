@@ -6,6 +6,7 @@ import django_filters
 from graphene_django.filter import DjangoFilterConnectionField
 from .models import Stock, Sector, Tag, StockList
 from .utils.data_fetcher import fetch_stock_data
+from .utils.stock_screener import find_breakout_stocks
 
 
 # Types
@@ -380,6 +381,7 @@ class Query(graphene.ObjectType):
     all_stocks =  DjangoFilterConnectionField(StockNode, filterset_class=StockFilter)
     trending_stocks = graphene.List(StockNode)
     stock = graphene.Field(StockNode, id=graphene.ID(), symbol=graphene.String())
+    breakout_stocks = graphene.List(StockType)
 
     all_sectors = graphene.List(SectorType)
     sector = graphene.Field(SectorType, id=graphene.ID())
@@ -400,6 +402,10 @@ class Query(graphene.ObjectType):
         tag_names=graphene.List(graphene.String, required=True)
     )
 
+    def resolve_breakout_stocks(self, info):
+        return find_breakout_stocks()
+
+
     def resolve_trending_stocks(self, info):
         """Fetch stocks with strong trends (e.g., volume spikes or RSI over 60)."""
         return Stock.objects.filter(volume_spike=True) | Stock.objects.filter(RSI_14__gt=60)
@@ -412,9 +418,6 @@ class Query(graphene.ObjectType):
 
     def resolve_stocks_by_tags(self, info, tag_names):
         return Stock.objects.filter(tags__name__in=tag_names).distinct()
-
-    def resolve_all_stocks(self, info):
-        return Stock.objects.all()
 
     def resolve_stock(self, info, id=None, symbol=None):
         if id:
