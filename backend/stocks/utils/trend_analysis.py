@@ -6,13 +6,11 @@ import pandas as pd
 def fetch_stock_trends(ticker):
     """Fetch stock price trends and technical indicators."""
     stock = yf.Ticker(ticker)
-    df = stock.history(period="2y", interval="1d", auto_adjust=True, actions=False)
+    df = stock.history(period="1y", interval="1d", auto_adjust=True, actions=False)
+    df_weekly = stock.history(period="5y", interval="1wk", auto_adjust=True, actions=False)
 
-    if df.empty:
+    if df.empty or df_weekly.empty:
         return None  # No data available
-
-    df_weekly = df.resample('W-FRI').agg(
-        {'Open': 'first', 'High': 'max', 'Low': 'min', 'Close': 'last', 'Volume': 'sum'})
 
     df['SMA_50'] = df['Close'].rolling(window=50).mean()
     df['SMA_200'] = df['Close'].rolling(window=200).mean()
@@ -23,10 +21,10 @@ def fetch_stock_trends(ticker):
 
     df['RSI_14'] = compute_rsi(df['Close'], 14)
 
-    new_high = df['Close'].iloc[-1] >= df['High'].rolling(window=52).max().iloc[-1]
-    new_low = df['Close'].iloc[-1] <= df['Low'].rolling(window=52).min().iloc[-1]
+    new_high = bool(df['Close'].iloc[-1] >= df['High'].rolling(window=52).max().iloc[-1])
+    new_low = bool(df['Close'].iloc[-1] <= df['Low'].rolling(window=52).min().iloc[-1])
 
-    volume_spike = df['Volume'].iloc[-1] > df['Volume'].rolling(window=10).mean().iloc[-1] * 1.5
+    volume_spike = bool(df['Volume'].iloc[-1] > df['Volume'].rolling(window=10).mean().iloc[-1] * 1.5)
 
     rs_sp500 = compute_relative_strength(ticker, "SPY")
 
