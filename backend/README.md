@@ -16,6 +16,8 @@ GraphQL API: Allows querying for stock trends, sector strength, and potential br
 
 User Features (Upcoming): Users will be able to create watchlists, save their own analysis, and track historical performance.
 
+Automated Updates: Weekly automated stock data updates (can be enabled/disabled).
+
 📍 Development Roadmap
 
 ✅ Phase 1: Data Collection & Storage
@@ -26,25 +28,35 @@ User Features (Upcoming): Users will be able to create watchlists, save their ow
 
 2️⃣ Organize Sector & Industry Group Data
 
+3️⃣ Populate the Database with Real Stocks & Sectors
 
 
 ✅ Phase 2: Data Processing & Analysis
 
-3️⃣ Rank Sectors & Industry Groups
+
+
+4️⃣ Rank Sectors & Industry Groups
 
 
 
-4️⃣ Screen for Breakout Stocks (Top-Down Analysis)
+5️⃣ Screen for Breakout Stocks (Top-Down Analysis)
+
+
+
+6️⃣ Automated Stock Data Updates
+
+
 
 
 
 🔄 Phase 3: User & Sharing Features
 
-5️⃣ Allow Users to Track Stocks & Save Analysis
+
+7️⃣ Allow Users to Track Stocks & Save Analysis
 
 
 
-6️⃣ Add GraphQL API for Insights & Reports
+8️⃣ Add GraphQL API for Insights & Reports
 
 
 
