@@ -6,6 +6,7 @@ import django_filters
 from graphene_django.filter import DjangoFilterConnectionField
 from .models import Stock, Sector, Tag, StockList
 from .utils.data_fetcher import fetch_stock_data
+from .utils.industry_analysis import rank_sectors, rank_industry_groups
 from .utils.stock_screener import find_breakout_stocks
 
 
@@ -377,7 +378,33 @@ class DeleteStockListMutation(graphene.Mutation):
             raise GraphQLError(f"Stock list with ID {id} does not exist or does not belong to you")
 
 
+class SectorStrengthType(graphene.ObjectType):
+    sector_name = graphene.String()
+    avg_rs = graphene.Float()
+    count_above_sma50 = graphene.Int()
+    count_above_sma200 = graphene.Int()
+    total_stocks = graphene.Int()
+
+class IndustryStrengthType(graphene.ObjectType):
+    industry_group_name = graphene.String()
+    sector_name = graphene.String()
+    avg_rs = graphene.Float()
+    count_above_sma50 = graphene.Int()
+    count_above_sma200 = graphene.Int()
+    total_stocks = graphene.Int()
+
+
 class Query(graphene.ObjectType):
+    sector_strength = graphene.List(SectorStrengthType)
+    industry_group_strength = graphene.List(IndustryStrengthType)
+
+    def resolve_sector_strength(self, info):
+        return rank_sectors()
+
+    def resolve_industry_group_strength(self, info):
+        return rank_industry_groups()
+
+
     all_stocks =  DjangoFilterConnectionField(StockNode, filterset_class=StockFilter)
     trending_stocks = graphene.List(StockNode)
     stock = graphene.Field(StockNode, id=graphene.ID(), symbol=graphene.String())
