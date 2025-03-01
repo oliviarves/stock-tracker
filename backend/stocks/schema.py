@@ -399,7 +399,8 @@ class Query(graphene.ObjectType):
     industry_group_strength = graphene.List(IndustryStrengthType)
 
     def resolve_sector_strength(self, info):
-        return rank_sectors()
+        result = rank_sectors()
+        return result
 
     def resolve_industry_group_strength(self, info):
         return rank_industry_groups()
