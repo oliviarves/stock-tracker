@@ -10,11 +10,21 @@ class Sector(models.Model):
     def __str__(self):
         return self.name
 
+class IndustryGroup(models.Model):
+    """More specific classification within a sector (e.g., Semiconductors, Airlines)."""
+    name = models.CharField(max_length=100, unique=True)
+    sector = models.ForeignKey(Sector, on_delete=models.CASCADE, related_name="industry_groups")
+
+    def __str__(self):
+        return self.name
+
 
 class Stock(models.Model):
     symbol = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=100)
     sector = models.ForeignKey(Sector, on_delete=models.SET_NULL, null=True, related_name='stocks')
+    industry_group = models.ForeignKey(IndustryGroup, on_delete=models.SET_NULL, null=True, related_name="stocks")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     exposed_to_sectors = models.ManyToManyField(Sector, related_name='exposed_to_sectors')

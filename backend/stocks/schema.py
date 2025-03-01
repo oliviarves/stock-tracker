@@ -381,7 +381,7 @@ class Query(graphene.ObjectType):
     all_stocks =  DjangoFilterConnectionField(StockNode, filterset_class=StockFilter)
     trending_stocks = graphene.List(StockNode)
     stock = graphene.Field(StockNode, id=graphene.ID(), symbol=graphene.String())
-    breakout_stocks = graphene.List(StockType)
+    breakout_stocks = graphene.List(StockNode)
 
     all_sectors = graphene.List(SectorType)
     sector = graphene.Field(SectorType, id=graphene.ID())
